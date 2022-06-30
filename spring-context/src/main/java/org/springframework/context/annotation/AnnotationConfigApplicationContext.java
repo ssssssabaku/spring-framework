@@ -88,6 +88,7 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 * {@link Configuration @Configuration} classes
 	 */
 	public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
+		// 初始化beanFactory及内部初始化处理的processor(configurationProcessor等)
 		this();
 		register(componentClasses);
 		refresh();

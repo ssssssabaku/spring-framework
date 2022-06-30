@@ -561,7 +561,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			// Tell the subclass to refresh the internal bean factory.
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
-			// Prepare the bean factory for use in this context.
+			// Prepare the bean factory foserializationId = "org.springframework.context.annotation.AnnotationConfigApplicationContext@377dca04"r use in this context.
+			// 初始化一堆处理器
 			prepareBeanFactory(beanFactory);
 
 			try {
@@ -677,6 +678,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @see #getBeanFactory()
 	 */
 	protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
+		//GenericApplicationContext
 		refreshBeanFactory();
 		return getBeanFactory();
 	}
@@ -695,7 +697,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this, getEnvironment()));
 
 		// Configure the bean factory with context callbacks.
+		// 注册后置处理器,执行顺序不受 order接口影响
 		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+		// 自动装配时忽略该接口？还没弄清楚
 		beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
 		beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
 		beanFactory.ignoreDependencyInterface(ResourceLoaderAware.class);
@@ -706,6 +710,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 		// BeanFactory interface not registered as resolvable type in a plain factory.
 		// MessageSource registered (and found for autowiring) as a bean.
+		//当一个接口有多个实现类且需要被注入时,注入指定的实现类(如果不指定spring会报错,因为实现类不唯一spring不知道该注入哪个)
 		beanFactory.registerResolvableDependency(BeanFactory.class, beanFactory);
 		beanFactory.registerResolvableDependency(ResourceLoader.class, this);
 		beanFactory.registerResolvableDependency(ApplicationEventPublisher.class, this);
