@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ public class JettyHttpHandlerAdapter extends ServletHttpHandlerAdapter {
 	protected ServletServerHttpRequest createRequest(HttpServletRequest request, AsyncContext context)
 			throws IOException, URISyntaxException {
 
-		Assert.notNull(getServletPath(), "Servlet path is not initialized");
+		Assert.state(getServletPath() != null, "Servlet path is not initialized");
 		return new JettyServerHttpRequest(
 				request, context, getServletPath(), getDataBufferFactory(), getBufferSize());
 	}
@@ -135,7 +135,7 @@ public class JettyHttpHandlerAdapter extends ServletHttpHandlerAdapter {
 
 		@Override
 		protected int writeToOutputStream(DataBuffer dataBuffer) throws IOException {
-			ByteBuffer input = dataBuffer.asByteBuffer();
+			ByteBuffer input = dataBuffer.toByteBuffer();
 			int len = input.remaining();
 			ServletResponse response = getNativeResponse();
 			((HttpOutput) response.getOutputStream()).write(input);

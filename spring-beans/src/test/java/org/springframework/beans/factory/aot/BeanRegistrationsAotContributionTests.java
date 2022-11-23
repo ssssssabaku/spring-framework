@@ -18,7 +18,6 @@ package org.springframework.beans.factory.aot;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -26,72 +25,68 @@ import java.util.function.Consumer;
 
 import javax.lang.model.element.Modifier;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import org.springframework.aot.generate.DefaultGenerationContext;
+import org.springframework.aot.generate.ClassNameGenerator;
 import org.springframework.aot.generate.GenerationContext;
-import org.springframework.aot.generate.InMemoryGeneratedFiles;
 import org.springframework.aot.generate.MethodReference;
-import org.springframework.aot.test.generator.compile.Compiled;
-import org.springframework.aot.test.generator.compile.TestCompiler;
-import org.springframework.aot.test.generator.file.SourceFile;
+import org.springframework.aot.generate.MethodReference.ArgumentCodeGenerator;
+import org.springframework.aot.test.generate.TestGenerationContext;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.RegisteredBean;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.beans.testfixture.beans.TestBean;
 import org.springframework.beans.testfixture.beans.factory.aot.MockBeanFactoryInitializationCode;
-import org.springframework.core.mock.MockSpringFactoriesLoader;
+import org.springframework.core.test.io.support.MockSpringFactoriesLoader;
+import org.springframework.core.test.tools.Compiled;
+import org.springframework.core.test.tools.SourceFile;
+import org.springframework.core.test.tools.TestCompiler;
+import org.springframework.javapoet.ClassName;
 import org.springframework.javapoet.CodeBlock;
-import org.springframework.javapoet.JavaFile;
 import org.springframework.javapoet.MethodSpec;
 import org.springframework.javapoet.ParameterizedTypeName;
-import org.springframework.javapoet.TypeSpec;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.beans.factory.aot.BeanRegistrationsAotContribution.Registration;
 
 /**
  * Tests for {@link BeanRegistrationsAotContribution}.
  *
  * @author Phillip Webb
+ * @author Sebastien Deleuze
+ * @author Stephane Nicoll
  */
 class BeanRegistrationsAotContributionTests {
 
-	private InMemoryGeneratedFiles generatedFiles;
+	private final DefaultListableBeanFactory beanFactory;
 
-	private DefaultGenerationContext generationContext;
+	private final BeanDefinitionMethodGeneratorFactory methodGeneratorFactory;
 
-	private DefaultListableBeanFactory beanFactory;
+	private TestGenerationContext generationContext;
 
-	private MockSpringFactoriesLoader springFactoriesLoader;
+	private MockBeanFactoryInitializationCode beanFactoryInitializationCode;
 
-	private BeanDefinitionMethodGeneratorFactory methodGeneratorFactory;
 
-	private MockBeanFactoryInitializationCode beanFactoryInitializationCode = new MockBeanFactoryInitializationCode();
-
-	@BeforeEach
-	void setup() {
-		this.generatedFiles = new InMemoryGeneratedFiles();
-		this.generationContext = new DefaultGenerationContext(this.generatedFiles);
+	BeanRegistrationsAotContributionTests() {
+		MockSpringFactoriesLoader springFactoriesLoader = new MockSpringFactoriesLoader();
 		this.beanFactory = new DefaultListableBeanFactory();
-		this.springFactoriesLoader = new MockSpringFactoriesLoader();
 		this.methodGeneratorFactory = new BeanDefinitionMethodGeneratorFactory(
-				new AotFactoriesLoader(this.beanFactory, this.springFactoriesLoader));
+				AotServices.factoriesAndBeans(springFactoriesLoader, this.beanFactory));
+		this.generationContext = new TestGenerationContext();
+		this.beanFactoryInitializationCode = new MockBeanFactoryInitializationCode(this.generationContext);
 	}
+
 
 	@Test
 	void applyToAppliesContribution() {
-		Map<String, BeanDefinitionMethodGenerator> registrations = new LinkedHashMap<>();
 		RegisteredBean registeredBean = registerBean(
 				new RootBeanDefinition(TestBean.class));
 		BeanDefinitionMethodGenerator generator = new BeanDefinitionMethodGenerator(
 				this.methodGeneratorFactory, registeredBean, null,
 				Collections.emptyList());
-		registrations.put("testBean", generator);
-		BeanRegistrationsAotContribution contribution = new BeanRegistrationsAotContribution(
-				registrations);
+		BeanRegistrationsAotContribution contribution = createContribution(generator);
 		contribution.applyTo(this.generationContext, this.beanFactoryInitializationCode);
-		testCompiledResult((consumer, compiled) -> {
+		compile((consumer, compiled) -> {
 			DefaultListableBeanFactory freshBeanFactory = new DefaultListableBeanFactory();
 			consumer.accept(freshBeanFactory);
 			assertThat(freshBeanFactory.getBean(TestBean.class)).isNotNull();
@@ -99,19 +94,34 @@ class BeanRegistrationsAotContributionTests {
 	}
 
 	@Test
-	void applyToWhenHasNameGeneratesPrefixedFeatureName() {
-		this.beanFactoryInitializationCode = new MockBeanFactoryInitializationCode("Management");
-		Map<String, BeanDefinitionMethodGenerator> registrations = new LinkedHashMap<>();
+	void applyToAppliesContributionWithAliases() {
 		RegisteredBean registeredBean = registerBean(
 				new RootBeanDefinition(TestBean.class));
 		BeanDefinitionMethodGenerator generator = new BeanDefinitionMethodGenerator(
 				this.methodGeneratorFactory, registeredBean, null,
 				Collections.emptyList());
-		registrations.put("testBean", generator);
-		BeanRegistrationsAotContribution contribution = new BeanRegistrationsAotContribution(
-				registrations);
+		BeanRegistrationsAotContribution contribution = createContribution(generator, "testAlias");
 		contribution.applyTo(this.generationContext, this.beanFactoryInitializationCode);
-		testCompiledResult((consumer, compiled) -> {
+		compile((consumer, compiled) -> {
+			DefaultListableBeanFactory freshBeanFactory = new DefaultListableBeanFactory();
+			consumer.accept(freshBeanFactory);
+			assertThat(freshBeanFactory.getAliases("testBean")).containsExactly("testAlias");
+		});
+	}
+
+	@Test
+	void applyToWhenHasNameGeneratesPrefixedFeatureName() {
+		this.generationContext = new TestGenerationContext(
+				new ClassNameGenerator(TestGenerationContext.TEST_TARGET, "Management"));
+		this.beanFactoryInitializationCode = new MockBeanFactoryInitializationCode(this.generationContext);
+		RegisteredBean registeredBean = registerBean(
+				new RootBeanDefinition(TestBean.class));
+		BeanDefinitionMethodGenerator generator = new BeanDefinitionMethodGenerator(
+				this.methodGeneratorFactory, registeredBean, null,
+				Collections.emptyList());
+		BeanRegistrationsAotContribution contribution = createContribution(generator);
+		contribution.applyTo(this.generationContext, this.beanFactoryInitializationCode);
+		compile((consumer, compiled) -> {
 			SourceFile sourceFile = compiled.getSourceFile(".*BeanDefinitions");
 			assertThat(sourceFile.getClassName()).endsWith("__ManagementBeanDefinitions");
 		});
@@ -120,7 +130,6 @@ class BeanRegistrationsAotContributionTests {
 	@Test
 	void applyToCallsRegistrationsWithBeanRegistrationsCode() {
 		List<BeanRegistrationsCode> beanRegistrationsCodes = new ArrayList<>();
-		Map<String, BeanDefinitionMethodGenerator> registrations = new LinkedHashMap<>();
 		RegisteredBean registeredBean = registerBean(
 				new RootBeanDefinition(TestBean.class));
 		BeanDefinitionMethodGenerator generator = new BeanDefinitionMethodGenerator(
@@ -129,21 +138,19 @@ class BeanRegistrationsAotContributionTests {
 
 			@Override
 			MethodReference generateBeanDefinitionMethod(
-					GenerationContext generationContext, String featureNamePrefix,
+					GenerationContext generationContext,
 					BeanRegistrationsCode beanRegistrationsCode) {
 				beanRegistrationsCodes.add(beanRegistrationsCode);
 				return super.generateBeanDefinitionMethod(generationContext,
-						featureNamePrefix, beanRegistrationsCode);
+						beanRegistrationsCode);
 			}
 
 		};
-		registrations.put("testBean", generator);
-		BeanRegistrationsAotContribution contribution = new BeanRegistrationsAotContribution(
-				registrations);
+		BeanRegistrationsAotContribution contribution = createContribution(generator);
 		contribution.applyTo(this.generationContext, this.beanFactoryInitializationCode);
 		assertThat(beanRegistrationsCodes).hasSize(1);
 		BeanRegistrationsCode actual = beanRegistrationsCodes.get(0);
-		assertThat(actual.getMethodGenerator()).isNotNull();
+		assertThat(actual.getMethods()).isNotNull();
 	}
 
 	private RegisteredBean registerBean(RootBeanDefinition rootBeanDefinition) {
@@ -153,27 +160,33 @@ class BeanRegistrationsAotContributionTests {
 	}
 
 	@SuppressWarnings({ "unchecked", "cast" })
-	private void testCompiledResult(
+	private void compile(
 			BiConsumer<Consumer<DefaultListableBeanFactory>, Compiled> result) {
+		MethodReference beanRegistrationsMethodReference = this.beanFactoryInitializationCode
+				.getInitializers().get(0);
+		MethodReference aliasesMethodReference = this.beanFactoryInitializationCode
+				.getInitializers().get(1);
+		this.beanFactoryInitializationCode.getTypeBuilder().set(type -> {
+			ArgumentCodeGenerator beanFactory = ArgumentCodeGenerator.of(DefaultListableBeanFactory.class, "beanFactory");
+			ClassName className = this.beanFactoryInitializationCode.getClassName();
+			CodeBlock beanRegistrationsMethodInvocation = beanRegistrationsMethodReference.toInvokeCodeBlock(beanFactory, className);
+			CodeBlock aliasesMethodInvocation = aliasesMethodReference.toInvokeCodeBlock(beanFactory, className);
+			type.addModifiers(Modifier.PUBLIC);
+			type.addSuperinterface(ParameterizedTypeName.get(Consumer.class, DefaultListableBeanFactory.class));
+			type.addMethod(MethodSpec.methodBuilder("accept").addModifiers(Modifier.PUBLIC)
+					.addParameter(DefaultListableBeanFactory.class, "beanFactory")
+					.addStatement(beanRegistrationsMethodInvocation)
+					.addStatement(aliasesMethodInvocation)
+					.build());
+		});
 		this.generationContext.writeGeneratedContent();
-		JavaFile javaFile = createJavaFile();
-		TestCompiler.forSystem().withFiles(this.generatedFiles).compile(javaFile::writeTo,
-				compiled -> result.accept(compiled.getInstance(Consumer.class),
-						compiled));
+		TestCompiler.forSystem().with(this.generationContext).compile(compiled ->
+				result.accept(compiled.getInstance(Consumer.class), compiled));
 	}
 
-	private JavaFile createJavaFile() {
-		MethodReference initializer = this.beanFactoryInitializationCode.getInitializers()
-				.get(0);
-		TypeSpec.Builder builder = TypeSpec.classBuilder("BeanFactoryConsumer");
-		builder.addModifiers(Modifier.PUBLIC);
-		builder.addSuperinterface(ParameterizedTypeName.get(Consumer.class,
-				DefaultListableBeanFactory.class));
-		builder.addMethod(MethodSpec.methodBuilder("accept").addModifiers(Modifier.PUBLIC)
-				.addParameter(DefaultListableBeanFactory.class, "beanFactory")
-				.addStatement(initializer.toInvokeCodeBlock(CodeBlock.of("beanFactory")))
-				.build());
-		return JavaFile.builder("__", builder.build()).build();
+	private BeanRegistrationsAotContribution createContribution(
+			BeanDefinitionMethodGenerator methodGenerator,String... aliases) {
+		return new BeanRegistrationsAotContribution(Map.of("testBean", new Registration(methodGenerator, aliases)));
 	}
 
 }

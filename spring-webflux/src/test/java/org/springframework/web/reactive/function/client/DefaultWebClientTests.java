@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -290,22 +290,22 @@ public class DefaultWebClientTests {
 				.defaultCookie("baz", "qux")
 				.build();
 
-		// Now, verify what each client has..
+		// Now, verify what each client has.
 
 		WebClient.Builder builder1 = client1.mutate();
-		builder1.filters(filters -> assertThat(filters.size()).isEqualTo(1));
-		builder1.defaultHeaders(headers -> assertThat(headers.size()).isEqualTo(1));
-		builder1.defaultCookies(cookies -> assertThat(cookies.size()).isEqualTo(1));
+		builder1.filters(filters -> assertThat(filters).hasSize(1));
+		builder1.defaultHeaders(headers -> assertThat(headers).hasSize(1));
+		builder1.defaultCookies(cookies -> assertThat(cookies).hasSize(1));
 
 		WebClient.Builder builder2 = client2.mutate();
-		builder2.filters(filters -> assertThat(filters.size()).isEqualTo(2));
-		builder2.defaultHeaders(headers -> assertThat(headers.size()).isEqualTo(2));
-		builder2.defaultCookies(cookies -> assertThat(cookies.size()).isEqualTo(2));
+		builder2.filters(filters -> assertThat(filters).hasSize(2));
+		builder2.defaultHeaders(headers -> assertThat(headers).hasSize(2));
+		builder2.defaultCookies(cookies -> assertThat(cookies).hasSize(2));
 
 		WebClient.Builder builder1a = client1a.mutate();
-		builder1a.filters(filters -> assertThat(filters.size()).isEqualTo(2));
-		builder1a.defaultHeaders(headers -> assertThat(headers.size()).isEqualTo(2));
-		builder1a.defaultCookies(cookies -> assertThat(cookies.size()).isEqualTo(2));
+		builder1a.filters(filters -> assertThat(filters).hasSize(2));
+		builder1a.defaultHeaders(headers -> assertThat(headers).hasSize(2));
+		builder1a.defaultCookies(cookies -> assertThat(cookies).hasSize(2));
 	}
 
 	@Test
@@ -421,6 +421,40 @@ public class DefaultWebClientTests {
 				.bodyToMono(Void.class);
 
 		StepVerifier.create(result).expectErrorMessage("1").verify();
+	}
+
+	@Test
+	public void onStatusHandlerRegisteredGlobally() {
+
+		ClientResponse response = ClientResponse.create(HttpStatus.BAD_REQUEST).build();
+		given(exchangeFunction.exchange(any())).willReturn(Mono.just(response));
+
+		Mono<Void> result = this.builder
+				.defaultStatusHandler(HttpStatusCode::is4xxClientError, resp -> Mono.error(new IllegalStateException("1")))
+				.defaultStatusHandler(HttpStatusCode::is4xxClientError, resp -> Mono.error(new IllegalStateException("2")))
+				.build().get()
+				.uri("/path")
+				.retrieve()
+				.bodyToMono(Void.class);
+
+		StepVerifier.create(result).expectErrorMessage("1").verify();
+	}
+
+	@Test
+	public void onStatusHandlerRegisteredGloballyHaveLowerPrecedence() {
+
+		ClientResponse response = ClientResponse.create(HttpStatus.BAD_REQUEST).build();
+		given(exchangeFunction.exchange(any())).willReturn(Mono.just(response));
+
+		Mono<Void> result = this.builder
+				.defaultStatusHandler(HttpStatusCode::is4xxClientError, resp -> Mono.error(new IllegalStateException("1")))
+				.build().get()
+				.uri("/path")
+				.retrieve()
+				.onStatus(HttpStatusCode::is4xxClientError, resp -> Mono.error(new IllegalStateException("2")))
+				.bodyToMono(Void.class);
+
+		StepVerifier.create(result).expectErrorMessage("2").verify();
 	}
 
 	@Test // gh-23880

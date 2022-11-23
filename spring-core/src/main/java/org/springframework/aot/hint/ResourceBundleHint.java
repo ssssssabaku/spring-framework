@@ -33,7 +33,7 @@ public final class ResourceBundleHint implements ConditionalHint {
 	private final String baseName;
 
 	@Nullable
-	private TypeReference reachableType;
+	private final TypeReference reachableType;
 
 
 	ResourceBundleHint(Builder builder) {
@@ -83,6 +83,10 @@ public final class ResourceBundleHint implements ConditionalHint {
 		@Nullable
 		private TypeReference reachableType;
 
+		Builder(String baseName) {
+			this.baseName = baseName;
+		}
+
 		/**
 		 * Make this hint conditional on the fact that the specified type
 		 * can be resolved.
@@ -96,7 +100,7 @@ public final class ResourceBundleHint implements ConditionalHint {
 		}
 
 		/**
-		 * Use the the {@code baseName} of the resource bundle.
+		 * Use the {@code baseName} of the resource bundle.
 		 * @return {@code this}, to facilitate method chaining
 		 */
 		public Builder baseName(String baseName) {

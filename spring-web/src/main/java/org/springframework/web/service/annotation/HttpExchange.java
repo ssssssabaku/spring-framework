@@ -22,19 +22,21 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.springframework.aot.hint.annotation.Reflective;
 import org.springframework.core.annotation.AliasFor;
+import org.springframework.http.HttpEntity;
 import org.springframework.web.bind.annotation.Mapping;
 
 /**
  * Annotation to declare a method on an HTTP service interface as an HTTP
  * endpoint. The endpoint details are defined statically through attributes of
- * the annotation, as well as through the input method argument values.
+ * the annotation, as well as through the input method argument types.
  *
  * <p>Supported at the type level to express common attributes, to be inherited
  * by all methods, such as a base URL path.
  *
- * <p>At the method level, it's more common to use one of the below HTTP method
- * specific, shortcut annotation, each of which is itself <em>meta-annotated</em>
+ * <p>At the method level, it's more common to use one of the following HTTP method
+ * specific, shortcut annotations, each of which is itself <em>meta-annotated</em>
  * with {@code HttpExchange}:
  *
  * <ul>
@@ -91,6 +93,17 @@ import org.springframework.web.bind.annotation.Mapping;
  * RequestParamArgumentResolver}</td>
  * </tr>
  * <tr>
+ * <td>{@link org.springframework.web.bind.annotation.RequestPart @RequestPart}</td>
+ * <td>Add a request part, which may be a String (form field),
+ * {@link org.springframework.core.io.Resource} (file part), Object (entity to be
+ * encoded, e.g. as JSON), {@link HttpEntity} (part content and headers), a
+ * {@link org.springframework.http.codec.multipart.Part}, or a
+ * {@link org.reactivestreams.Publisher} of any of the above.
+ * (</td>
+ * <td>{@link org.springframework.web.service.invoker.RequestPartArgumentResolver
+ * RequestPartArgumentResolver}</td>
+ * </tr>
+ * <tr>
  * <td>{@link org.springframework.web.bind.annotation.CookieValue @CookieValue}</td>
  * <td>Add a cookie</td>
  * <td>{@link org.springframework.web.service.invoker.CookieValueArgumentResolver
@@ -105,6 +118,7 @@ import org.springframework.web.bind.annotation.Mapping;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Mapping
+@Reflective(HttpExchangeReflectiveProcessor.class)
 public @interface HttpExchange {
 
 	/**

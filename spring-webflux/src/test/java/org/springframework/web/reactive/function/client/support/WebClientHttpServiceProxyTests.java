@@ -105,11 +105,11 @@ public class WebClientHttpServiceProxyTests {
 		return initHttpService(webClient);
 	}
 
-	private TestHttpService initHttpService(WebClient webClient) throws Exception {
-		WebClientAdapter client = new WebClientAdapter(webClient);
-		HttpServiceProxyFactory proxyFactory = new HttpServiceProxyFactory(client);
-		proxyFactory.afterPropertiesSet();
-		return proxyFactory.createClient(TestHttpService.class);
+	private TestHttpService initHttpService(WebClient webClient) {
+		return HttpServiceProxyFactory.builder()
+				.clientAdapter(WebClientAdapter.forClient(webClient))
+				.build()
+				.createClient(TestHttpService.class);
 	}
 
 	private void prepareResponse(Consumer<MockResponse> consumer) {

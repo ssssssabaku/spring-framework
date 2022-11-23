@@ -178,7 +178,15 @@ public class ServletAnnotationControllerHandlerMethodTests extends AbstractServl
 
 	@PathPatternsParameterizedTest
 	void emptyValueMapping(boolean usePathPatterns) throws Exception {
-		initDispatcherServlet(ControllerWithEmptyValueMapping.class, usePathPatterns);
+		initDispatcherServlet(ControllerWithEmptyValueMapping.class, usePathPatterns, wac -> {
+			if (!usePathPatterns) {
+				// UrlPathHelper returns "/" for "",
+				// so either the mapping has to be "/" or trailingSlashMatch must be on
+				RootBeanDefinition mappingDef = new RootBeanDefinition(RequestMappingHandlerMapping.class);
+				mappingDef.getPropertyValues().add("useTrailingSlashMatch", true);
+				wac.registerBeanDefinition("handlerMapping", mappingDef);
+			}
+		});
 
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/foo");
 		request.setContextPath("/foo");
@@ -190,7 +198,15 @@ public class ServletAnnotationControllerHandlerMethodTests extends AbstractServl
 
 	@PathPatternsParameterizedTest
 	void errorThrownFromHandlerMethod(boolean usePathPatterns) throws Exception {
-		initDispatcherServlet(ControllerWithErrorThrown.class, usePathPatterns);
+		initDispatcherServlet(ControllerWithErrorThrown.class, usePathPatterns, wac -> {
+			if (!usePathPatterns) {
+				// UrlPathHelper returns "/" for "",
+				// so either the mapping has to be "/" or trailingSlashMatch must be on
+				RootBeanDefinition mappingDef = new RootBeanDefinition(RequestMappingHandlerMapping.class);
+				mappingDef.getPropertyValues().add("useTrailingSlashMatch", true);
+				wac.registerBeanDefinition("handlerMapping", mappingDef);
+			}
+		});
 
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/foo");
 		request.setContextPath("/foo");
@@ -2715,7 +2731,7 @@ public class ServletAnnotationControllerHandlerMethodTests extends AbstractServl
 			vf.afterPropertiesSet();
 			binder.setValidator(vf);
 			assertThat(date).isEqualTo("2007-10-02");
-			assertThat(date2.length).isEqualTo(1);
+			assertThat(date2).hasSize(1);
 			assertThat(date2[0]).isEqualTo("2007-10-02");
 			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 			dateFormat.setLenient(false);
@@ -2749,6 +2765,7 @@ public class ServletAnnotationControllerHandlerMethodTests extends AbstractServl
 
 	@Controller
 	@RequestMapping("/myPath.do")
+	@SuppressWarnings("serial")
 	static class MyParameterDispatchingController implements Serializable {
 
 		private static final long serialVersionUID = 1L;
@@ -3849,7 +3866,7 @@ public class ServletAnnotationControllerHandlerMethodTests extends AbstractServl
 	@Controller
 	static class HttpHeadersResponseController {
 
-		@RequestMapping(value = "", method = RequestMethod.POST)
+		@RequestMapping(value = "/", method = RequestMethod.POST)
 		@ResponseStatus(HttpStatus.CREATED)
 		public HttpHeaders create() throws URISyntaxException {
 			HttpHeaders headers = new HttpHeaders();

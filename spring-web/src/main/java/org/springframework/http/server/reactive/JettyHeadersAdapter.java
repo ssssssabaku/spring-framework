@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpFields;
@@ -106,13 +105,13 @@ class JettyHeadersAdapter implements MultiValueMap<String, String> {
 
 	@Override
 	public boolean containsKey(Object key) {
-		return (key instanceof String && this.headers.contains((String) key));
+		return (key instanceof String headerName && this.headers.contains(headerName));
 	}
 
 	@Override
 	public boolean containsValue(Object value) {
-		return (value instanceof String &&
-				this.headers.stream().anyMatch(field -> field.contains((String) value)));
+		return (value instanceof String searchString &&
+				this.headers.stream().anyMatch(field -> field.contains(searchString)));
 	}
 
 	@Nullable
@@ -135,9 +134,9 @@ class JettyHeadersAdapter implements MultiValueMap<String, String> {
 	@Nullable
 	@Override
 	public List<String> remove(Object key) {
-		if (key instanceof String) {
+		if (key instanceof String headerName) {
 			List<String> oldValues = get(key);
-			this.headers.remove((String) key);
+			this.headers.remove(headerName);
 			return oldValues;
 		}
 		return null;
@@ -161,7 +160,7 @@ class JettyHeadersAdapter implements MultiValueMap<String, String> {
 	@Override
 	public Collection<List<String>> values() {
 		return this.headers.getFieldNamesCollection().stream()
-				.map(this.headers::getValuesList).collect(Collectors.toList());
+				.map(this.headers::getValuesList).toList();
 	}
 
 	@Override

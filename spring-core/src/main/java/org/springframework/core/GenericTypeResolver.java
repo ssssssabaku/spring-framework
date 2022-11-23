@@ -199,8 +199,12 @@ public final class GenericTypeResolver {
 	private static ResolvableType resolveVariable(TypeVariable<?> typeVariable, ResolvableType contextType) {
 		ResolvableType resolvedType;
 		if (contextType.hasGenerics()) {
-			resolvedType = ResolvableType.forType(typeVariable, contextType);
-			if (resolvedType.resolve() != null) {
+			ResolvableType.VariableResolver variableResolver = contextType.asVariableResolver();
+			if (variableResolver == null) {
+				return ResolvableType.NONE;
+			}
+			resolvedType = variableResolver.resolveVariable(typeVariable);
+			if (resolvedType != null) {
 				return resolvedType;
 			}
 		}
@@ -208,13 +212,13 @@ public final class GenericTypeResolver {
 		ResolvableType superType = contextType.getSuperType();
 		if (superType != ResolvableType.NONE) {
 			resolvedType = resolveVariable(typeVariable, superType);
-			if (resolvedType.resolve() != null) {
+			if (resolvedType != ResolvableType.NONE) {
 				return resolvedType;
 			}
 		}
 		for (ResolvableType ifc : contextType.getInterfaces()) {
 			resolvedType = resolveVariable(typeVariable, ifc);
-			if (resolvedType.resolve() != null) {
+			if (resolvedType != ResolvableType.NONE) {
 				return resolvedType;
 			}
 		}
@@ -236,7 +240,7 @@ public final class GenericTypeResolver {
 	/**
 	 * Build a mapping of {@link TypeVariable#getName TypeVariable names} to
 	 * {@link Class concrete classes} for the specified {@link Class}.
-	 * Searches all super types, enclosing types and interfaces.
+	 * Searches all supertypes, enclosing types and interfaces.
 	 * @see #resolveType(Type, Map)
 	 */
 	@SuppressWarnings("rawtypes")
