@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -232,11 +232,14 @@ class ConstructorResolver {
 				Class<?>[] paramTypes = candidate.getParameterTypes();
 				if (resolvedValues != null) {
 					try {
-						String[] paramNames = ConstructorPropertiesChecker.evaluate(candidate, parameterCount);
-						if (paramNames == null) {
-							ParameterNameDiscoverer pnd = this.beanFactory.getParameterNameDiscoverer();
-							if (pnd != null) {
-								paramNames = pnd.getParameterNames(candidate);
+						String[] paramNames = null;
+						if (resolvedValues.containsNamedArgument()) {
+							paramNames = ConstructorPropertiesChecker.evaluate(candidate, parameterCount);
+							if (paramNames == null) {
+								ParameterNameDiscoverer pnd = this.beanFactory.getParameterNameDiscoverer();
+								if (pnd != null) {
+									paramNames = pnd.getParameterNames(candidate);
+								}
 							}
 						}
 						argsHolder = createArgumentArray(beanName, mbd, resolvedValues, bw, paramTypes, paramNames,
@@ -536,9 +539,11 @@ class ConstructorResolver {
 						// Resolved constructor arguments: type conversion and/or autowiring necessary.
 						try {
 							String[] paramNames = null;
-							ParameterNameDiscoverer pnd = this.beanFactory.getParameterNameDiscoverer();
-							if (pnd != null) {
-								paramNames = pnd.getParameterNames(candidate);
+							if (resolvedValues != null && resolvedValues.containsNamedArgument()) {
+								ParameterNameDiscoverer pnd = this.beanFactory.getParameterNameDiscoverer();
+								if (pnd != null) {
+									paramNames = pnd.getParameterNames(candidate);
+								}
 							}
 							argsHolder = createArgumentArray(beanName, mbd, resolvedValues, bw,
 									paramTypes, paramNames, candidate, autowiring, candidates.size() == 1);
@@ -761,8 +766,8 @@ class ConstructorResolver {
 										"] to required type [" + paramType.getName() + "]: " + ex.getMessage());
 					}
 					Object sourceHolder = valueHolder.getSource();
-					if (sourceHolder instanceof ConstructorArgumentValues.ValueHolder) {
-						Object sourceValue = ((ConstructorArgumentValues.ValueHolder) sourceHolder).getValue();
+					if (sourceHolder instanceof ConstructorArgumentValues.ValueHolder constructorValueHolder) {
+						Object sourceValue = constructorValueHolder.getValue();
 						args.resolveNecessary = true;
 						args.preparedArguments[paramIndex] = sourceValue;
 					}
@@ -829,8 +834,8 @@ class ConstructorResolver {
 			else if (argValue instanceof BeanMetadataElement) {
 				argValue = valueResolver.resolveValueIfNecessary("constructor argument", argValue);
 			}
-			else if (argValue instanceof String) {
-				argValue = this.beanFactory.evaluateBeanDefinitionString((String) argValue, mbd);
+			else if (argValue instanceof String text) {
+				argValue = this.beanFactory.evaluateBeanDefinitionString(text, mbd);
 			}
 			Class<?> paramType = paramTypes[argIndex];
 			try {
@@ -1215,6 +1220,54 @@ class ConstructorResolver {
 			currentInjectionPoint.remove();
 		}
 		return old;
+	}
+
+	/**
+	 * See {@link BeanUtils#getResolvableConstructor(Class)} for alignment.
+	 * This variant adds a lenient fallback to the default constructor if available, similar to
+	 * {@link org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor#determineCandidateConstructors}.
+	 */
+	@Nullable
+	static Constructor<?>[] determinePreferredConstructors(Class<?> clazz) {
+		Constructor<?> primaryCtor = BeanUtils.findPrimaryConstructor(clazz);
+
+		Constructor<?> defaultCtor;
+		try {
+			defaultCtor = clazz.getDeclaredConstructor();
+		}
+		catch (NoSuchMethodException ex) {
+			defaultCtor = null;
+		}
+
+		if (primaryCtor != null) {
+			if (defaultCtor != null && !primaryCtor.equals(defaultCtor)) {
+				return new Constructor<?>[] {primaryCtor, defaultCtor};
+			}
+			else {
+				return new Constructor<?>[] {primaryCtor};
+			}
+		}
+
+		Constructor<?>[] ctors = clazz.getConstructors();
+		if (ctors.length == 1) {
+			// A single public constructor, potentially in combination with a non-public default constructor
+			if (defaultCtor != null && !ctors[0].equals(defaultCtor)) {
+				return new Constructor<?>[] {ctors[0], defaultCtor};
+			}
+			else {
+				return ctors;
+			}
+		}
+		else if (ctors.length == 0) {
+			// No public constructors -> check non-public
+			ctors = clazz.getDeclaredConstructors();
+			if (ctors.length == 1) {
+				// A single non-public constructor, e.g. from a non-public record type
+				return ctors;
+			}
+		}
+
+		return null;
 	}
 
 

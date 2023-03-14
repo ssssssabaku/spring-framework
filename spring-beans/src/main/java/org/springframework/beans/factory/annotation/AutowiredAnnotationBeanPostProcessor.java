@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,6 +45,7 @@ import org.springframework.aot.generate.GeneratedMethod;
 import org.springframework.aot.generate.GenerationContext;
 import org.springframework.aot.hint.ExecutableMode;
 import org.springframework.aot.hint.RuntimeHints;
+import org.springframework.aot.hint.support.ClassHintUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.PropertyValues;
@@ -266,11 +266,11 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 
 	@Override
 	public void setBeanFactory(BeanFactory beanFactory) {
-		if (!(beanFactory instanceof ConfigurableListableBeanFactory)) {
+		if (!(beanFactory instanceof ConfigurableListableBeanFactory clbf)) {
 			throw new IllegalArgumentException(
 					"AutowiredAnnotationBeanPostProcessor requires a ConfigurableListableBeanFactory: " + beanFactory);
 		}
-		this.beanFactory = (ConfigurableListableBeanFactory) beanFactory;
+		this.beanFactory = clbf;
 	}
 
 
@@ -280,6 +280,7 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 	}
 
 	@Override
+	@Nullable
 	public BeanRegistrationAotContribution processAheadOfTime(RegisteredBean registeredBean) {
 		Class<?> beanClass = registeredBean.getBeanClass();
 		String beanName = registeredBean.getBeanName();
@@ -323,10 +324,10 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 		checkLookupMethods(beanClass, beanName);
 
 		// Pick up subclass with fresh lookup method override from above
-		if (this.beanFactory instanceof AbstractAutowireCapableBeanFactory aacbf) {
+		if (this.beanFactory instanceof AbstractAutowireCapableBeanFactory aacBeanFactory) {
 			RootBeanDefinition mbd = (RootBeanDefinition) this.beanFactory.getMergedBeanDefinition(beanName);
 			if (mbd.getFactoryMethodName() == null && mbd.hasBeanClass()) {
-				return aacbf.getInstantiationStrategy().getActualBeanClass(mbd, beanName, this.beanFactory);
+				return aacBeanFactory.getInstantiationStrategy().getActualBeanClass(mbd, beanName, aacBeanFactory);
 			}
 		}
 		return beanClass;
@@ -1018,10 +1019,10 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 
 		private void registerProxyIfNecessary(RuntimeHints runtimeHints, DependencyDescriptor dependencyDescriptor) {
 			if (this.candidateResolver != null) {
-				Class<?> proxyType =
+				Class<?> proxyClass =
 						this.candidateResolver.getLazyResolutionProxyClass(dependencyDescriptor, null);
-				if (proxyType != null && Proxy.isProxyClass(proxyType)) {
-					runtimeHints.proxies().registerJdkProxy(proxyType.getInterfaces());
+				if (proxyClass != null) {
+					ClassHintUtils.registerProxyIfNecessary(proxyClass, runtimeHints);
 				}
 			}
 		}

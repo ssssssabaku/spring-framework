@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -209,7 +209,7 @@ class SpelReproTests extends AbstractExpressionTests {
 		checkTemplateParsingError("abc${ } }", "No expression defined within delimiter '${}' at character 3");
 		checkTemplateParsingError("abc$[ } ]", DOLLARSQUARE_TEMPLATE_PARSER_CONTEXT, "Found closing '}' at position 6 without an opening '{'");
 
-		checkTemplateParsing("abc ${\"def''g}hi\"} jkl", "abc def'g}hi jkl");
+		checkTemplateParsing("abc ${\"def''g}hi\"} jkl", "abc def''g}hi jkl");
 		checkTemplateParsing("abc ${'def''g}hi'} jkl", "abc def'g}hi jkl");
 		checkTemplateParsing("}", "}");
 		checkTemplateParsing("${'hello'} world", "hello world");
@@ -2251,7 +2251,7 @@ class SpelReproTests extends AbstractExpressionTests {
 		}
 
 		@Override
-		public boolean equals(Object other) {
+		public boolean equals(@Nullable Object other) {
 			return (this == other || (other instanceof TestClass2 &&
 					this.string.equals(((TestClass2) other).string)));
 		}
