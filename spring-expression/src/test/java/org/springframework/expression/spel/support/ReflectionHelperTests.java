@@ -19,6 +19,7 @@ package org.springframework.expression.spel.support;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +27,8 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.MethodExecutor;
+import org.springframework.expression.MethodResolver;
 import org.springframework.expression.ParseException;
 import org.springframework.expression.PropertyAccessor;
 import org.springframework.expression.TypedValue;
@@ -364,6 +367,20 @@ public class ReflectionHelperTests extends AbstractExpressionTests {
 				field.write(ctx, tester, "field", null));
 	}
 
+	@Test
+	void reflectiveMethodResolverForJdkProxies() throws Exception {
+		Object proxy = Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[] { Runnable.class }, (p, m, args) -> null);
+
+		MethodResolver resolver = new ReflectiveMethodResolver();
+		StandardEvaluationContext evaluationContext = new StandardEvaluationContext();
+
+		MethodExecutor bogus = resolver.resolve(evaluationContext, proxy, "bogus", List.of());
+		assertThat(bogus).as("MethodExecutor for bogus()").isNull();
+		MethodExecutor toString = resolver.resolve(evaluationContext, proxy, "toString", List.of());
+		assertThat(toString).as("MethodExecutor for toString()").isNotNull();
+		MethodExecutor hashCode = resolver.resolve(evaluationContext, proxy, "hashCode", List.of());
+		assertThat(hashCode).as("MethodExecutor for hashCode()").isNotNull();
+	}
 
 	/**
 	 * Used to validate the match returned from a compareArguments call.
