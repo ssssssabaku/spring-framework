@@ -551,21 +551,25 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
+			//创建容器对象
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory foserializationId = "org.springframework.context.annotation.AnnotationConfigApplicationContext@377dca04"r use in this context.
-			// 初始化一堆处理器
+			// 初始化一堆处理器，beanFactory准备工作，填充各种属性
 			prepareBeanFactory(beanFactory);
 
 			try {
 				// Allows post-processing of the bean factory in context subclasses.
+				//空 子类扩展实现，springboot有相关扩展
 				postProcessBeanFactory(beanFactory);
 
 				StartupStep beanPostProcess = this.applicationStartup.start("spring.context.beans.post-process");
 				// Invoke factory processors registered as beans in the context.
+				//调用各种beanFactory处理器
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
+				//注册bean处理器
 				registerBeanPostProcessors(beanFactory);
 				beanPostProcess.end();
 
@@ -573,15 +577,19 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
+				//初始化时间监听多路广播
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
+				//预留子类初始化
 				onRefresh();
 
 				// Check for listener beans and register them.
+				//在所有注册类中找到listener bean 注册到消息广播
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.
+				//初始化非懒加载单列
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
@@ -907,6 +915,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Initialize LoadTimeWeaverAware beans early to allow for registering their transformers early.
+		//尽早初始化LoadTimeWeaverWare bean，以便尽早注册其转换器。
 		String[] weaverAwareNames = beanFactory.getBeanNamesForType(LoadTimeWeaverAware.class, false, false);
 		for (String weaverAwareName : weaverAwareNames) {
 			getBean(weaverAwareName);
@@ -919,6 +928,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.freezeConfiguration();
 
 		// Instantiate all remaining (non-lazy-init) singletons.
+		//实例化非懒加载单列
 		beanFactory.preInstantiateSingletons();
 	}
 

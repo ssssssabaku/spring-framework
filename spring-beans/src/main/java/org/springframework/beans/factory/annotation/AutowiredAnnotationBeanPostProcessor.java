@@ -368,13 +368,16 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 						else if (primaryConstructor != null) {
 							continue;
 						}
+						//检查构造函数是有有autowired注解
 						MergedAnnotation<?> ann = findAutowiredAnnotation(candidate);
 						if (ann == null) {
 							Class<?> userClass = ClassUtils.getUserClass(beanClass);
+							//不相等时可能是父类的构造函数
 							if (userClass != beanClass) {
 								try {
 									Constructor<?> superCtor =
 											userClass.getDeclaredConstructor(candidate.getParameterTypes());
+									//校验父类构造函数是否有@autowired注解
 									ann = findAutowiredAnnotation(superCtor);
 								}
 								catch (NoSuchMethodException ex) {
@@ -382,13 +385,17 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 								}
 							}
 						}
+						//当构造函数存在autowired注解时
 						if (ann != null) {
+							//@Autowired默认的required = true,当有一个required = true的@Autowired标识的构造函数时，
+							//不能有其他的构造函数再标识@Autowired，否则会报错
 							if (requiredConstructor != null) {
 								throw new BeanCreationException(beanName,
 										"Invalid autowire-marked constructor: " + candidate +
 										". Found constructor with 'required' Autowired annotation already: " +
 										requiredConstructor);
 							}
+							//@Autowired的required的属性值，true / false
 							boolean required = determineRequiredStatus(ann);
 							if (required) {
 								if (!candidates.isEmpty()) {
@@ -411,6 +418,8 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 							if (defaultConstructor != null) {
 								candidates.add(defaultConstructor);
 							}
+							//如果没有默认的无参构造函数，且有@Autowired（required = false）的构造函数，则发出警告信
+							//这里为什么不是candidates.size()>0
 							else if (candidates.size() == 1 && logger.isInfoEnabled()) {
 								logger.info("Inconsistent constructor declaration on bean with name '" + beanName +
 										"': single autowire-marked constructor flagged as optional - " +
@@ -420,6 +429,7 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 						}
 						candidateConstructors = candidates.toArray(new Constructor<?>[0]);
 					}
+					//只有一个构造函数
 					else if (rawCandidates.length == 1 && rawCandidates[0].getParameterCount() > 0) {
 						candidateConstructors = new Constructor<?>[] {rawCandidates[0]};
 					}

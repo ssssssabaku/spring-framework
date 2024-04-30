@@ -74,12 +74,14 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	private static final int SUPPRESSED_EXCEPTIONS_LIMIT = 100;
 
 
+	// 一级缓存
 	/** Cache of singleton objects: bean name to bean instance. */
 	private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
+	//三级缓存
 	/** Cache of singleton factories: bean name to ObjectFactory. */
 	private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
-
+	//二级缓存
 	/** Cache of early singleton objects: bean name to bean instance. */
 	private final Map<String, Object> earlySingletonObjects = new ConcurrentHashMap<>(16);
 
@@ -154,8 +156,11 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
 		Assert.notNull(singletonFactory, "Singleton factory must not be null");
 		synchronized (this.singletonObjects) {
+			//判断一级缓存中是否存在
 			if (!this.singletonObjects.containsKey(beanName)) {
+				//三级缓存
 				this.singletonFactories.put(beanName, singletonFactory);
+				//二级缓存
 				this.earlySingletonObjects.remove(beanName);
 				this.registeredSingletons.add(beanName);
 			}
@@ -179,9 +184,19 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
 		// Quick check for existing instance without full singleton lock
+		//从单例对象缓存中获取beanName对应的单例对象 一级缓存
 		Object singletonObject = this.singletonObjects.get(beanName);
+		//一级缓存没有 并且该beanName单例对象
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
+			/**
+			 *二级缓存，又称早期对象
+			 * (因为里面的对象都通是通过提前曝光的objectFactory创建出来的，还没有进行属性填充等操作)
+			 * 对象实例化
+			 * 属性填充
+			 * 对象init
+			 */
 			singletonObject = this.earlySingletonObjects.get(beanName);
+			//如果早期对象没有(二级缓存)，并且允许创建早期对象
 			if (singletonObject == null && allowEarlyReference) {
 				synchronized (this.singletonObjects) {
 					// Consistent creation of early reference within full singleton lock
@@ -189,6 +204,8 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					if (singletonObject == null) {
 						singletonObject = this.earlySingletonObjects.get(beanName);
 						if (singletonObject == null) {
+							//锁之后又去一级和二级缓存中找，找不到就在三级缓存中找
+							//然后用三级缓存的objectFactory对象创建对象放入二级缓存中,并删除三级缓存
 							ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 							if (singletonFactory != null) {
 								singletonObject = singletonFactory.getObject();
@@ -411,8 +428,14 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 * @param dependentBeanName the name of the dependent bean
 	 */
 	public void registerDependentBean(String beanName, String dependentBeanName) {
+		//获取类的最终别名
+		//注入的bean
 		String canonicalName = canonicalName(beanName);
 
+		/**
+		 * dependentBeanMap beanName和这个bean所依赖的beanNames
+		 * dependenciesForBeanMap beanName和这个bean所依赖的bean对象
+		 */
 		synchronized (this.dependentBeanMap) {
 			Set<String> dependentBeans =
 					this.dependentBeanMap.computeIfAbsent(canonicalName, k -> new LinkedHashSet<>(8));

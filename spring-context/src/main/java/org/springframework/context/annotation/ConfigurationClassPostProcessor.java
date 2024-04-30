@@ -423,8 +423,8 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 				for (String candidateName : newCandidateNames) {
 					if (!oldCandidateNames.contains(candidateName)) {
 						BeanDefinition bd = registry.getBeanDefinition(candidateName);
-						if (ConfigurationClassUtils.checkConfigurationClassCandidate(bd, this.metadataReaderFactory) &&
-								!alreadyParsedClasses.contains(bd.getBeanClassName())) {
+  						if (ConfigurationClassUtils.checkConfigurationClassCandidate(bd, this.metadataReaderFactory) &&
+ 								!alreadyParsedClasses.contains(bd.getBeanClassName())) {
 							candidates.add(new BeanDefinitionHolder(bd, candidateName));
 						}
 					}
@@ -442,7 +442,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		// Store the PropertySourceDescriptors to contribute them Ahead-of-time if necessary
 		this.propertySourceDescriptors = parser.getPropertySourceDescriptors();
 
-		if (this.metadataReaderFactory instanceof CachingMetadataReaderFactory cachingMetadataReaderFactory) {
+ 		if (this.metadataReaderFactory instanceof CachingMetadataReaderFactory cachingMetadataReaderFactory) {
 			// Clear cache in externally provided MetadataReaderFactory; this is a no-op
 			// for a shared cache since it'll be cleared by the ApplicationContext.
 			cachingMetadataReaderFactory.clearCache();

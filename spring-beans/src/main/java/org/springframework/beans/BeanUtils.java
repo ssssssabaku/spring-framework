@@ -194,6 +194,7 @@ public abstract class BeanUtils {
 			else {
 				int parameterCount = ctor.getParameterCount();
 				Assert.isTrue(args.length <= parameterCount, "Can't specify more arguments than constructor parameters");
+				//默认的无参构造器
 				if (parameterCount == 0) {
 					return ctor.newInstance();
 				}
@@ -674,6 +675,7 @@ public abstract class BeanUtils {
 	public static boolean isSimpleValueType(Class<?> type) {
 		return (Void.class != type && void.class != type &&
 				(ClassUtils.isPrimitiveOrWrapper(type) ||
+						//isAssignableFrom 判断当前类是否为传入类的父类，超接口，或者相同
 				Enum.class.isAssignableFrom(type) ||
 				CharSequence.class.isAssignableFrom(type) ||
 				Number.class.isAssignableFrom(type) ||

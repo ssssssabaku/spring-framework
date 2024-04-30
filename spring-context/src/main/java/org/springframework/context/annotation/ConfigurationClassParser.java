@@ -158,7 +158,7 @@ class ConfigurationClassParser {
 
 	public void parse(Set<BeanDefinitionHolder> configCandidates) {
 		for (BeanDefinitionHolder holder : configCandidates) {
-			BeanDefinition bd = holder.getBeanDefinition();
+                 			BeanDefinition bd = holder.getBeanDefinition();
 			try {
 				if (bd instanceof AnnotatedBeanDefinition annotatedBeanDef) {
 					parse(annotatedBeanDef.getMetadata(), holder.getBeanName());
@@ -266,7 +266,7 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @PropertySource annotations
-		for (AnnotationAttributes propertySource : AnnotationConfigUtils.attributesForRepeatable(
+ 		for (AnnotationAttributes propertySource : AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), PropertySources.class,
 				org.springframework.context.annotation.PropertySource.class)) {
 			if (this.propertySourceRegistry != null) {
