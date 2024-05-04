@@ -8,5 +8,6 @@ import org.springframework.context.annotation.ComponentScan;
  */
 
 @ComponentScan("org.springframework.demo")
+//@MapperScan("org.springframework.demo")
 public class DemoConfig {
 }

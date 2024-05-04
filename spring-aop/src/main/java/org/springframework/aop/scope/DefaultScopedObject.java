@@ -55,6 +55,7 @@ public class DefaultScopedObject implements ScopedObject, Serializable {
 	}
 
 
+	//获取原始bean即被代理对象
 	@Override
 	public Object getTargetObject() {
 		return this.beanFactory.getBean(this.targetBeanName);

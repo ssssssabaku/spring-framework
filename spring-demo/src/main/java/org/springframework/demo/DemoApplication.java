@@ -8,6 +8,9 @@ import org.springframework.demo.service.ConstructorArgsDemo;
 import org.springframework.demo.service.DemoService;
 import org.springframework.demo.service.UserService;
 
+import javax.sql.DataSource;
+import java.sql.SQLException;
+
 /**
  * vm options add  --add-opens java.base/java.lang=ALL-UNNAMED
  *
@@ -16,7 +19,7 @@ import org.springframework.demo.service.UserService;
  */
 public class DemoApplication {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws SQLException {
 
 		AnnotationConfigApplicationContext app = new AnnotationConfigApplicationContext(DemoConfig.class);
 		DemoService demoService = app.getBean(DemoService.class);
@@ -30,6 +33,8 @@ public class DemoApplication {
 		factoryBeanDemo.getInfo();
 //		smartProcessor.getInfo();
 		constructorArgsDemo.getInfo();
+
+		System.out.println(app.getBean(DataSource.class).getConnection());
 
 
 	}

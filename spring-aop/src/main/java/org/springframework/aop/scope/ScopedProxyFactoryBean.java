@@ -90,11 +90,14 @@ public class ScopedProxyFactoryBean extends ProxyConfig
 		}
 		this.scopedTargetSource.setBeanFactory(beanFactory);
 
+		//代理工厂
 		ProxyFactory pf = new ProxyFactory();
 		pf.copyFrom(this);
+		//目标源
 		pf.setTargetSource(this.scopedTargetSource);
 
 		Assert.notNull(this.targetBeanName, "Property 'targetBeanName' is required");
+		//获取源被代理bean
 		Class<?> beanType = beanFactory.getType(this.targetBeanName);
 		if (beanType == null) {
 			throw new IllegalStateException("Cannot create scoped proxy for bean '" + this.targetBeanName +
@@ -106,6 +109,7 @@ public class ScopedProxyFactoryBean extends ProxyConfig
 
 		// Add an introduction that implements only the methods on ScopedObject.
 		ScopedObject scopedObject = new DefaultScopedObject(cbf, this.scopedTargetSource.getTargetBeanName());
+		//给代理对象添加一个introduction类型的拦截器，并且把scopedObject作为introduction实现委托对象
 		pf.addAdvice(new DelegatingIntroductionInterceptor(scopedObject));
 
 		// Add the AopInfrastructureBean marker to indicate that the scoped proxy

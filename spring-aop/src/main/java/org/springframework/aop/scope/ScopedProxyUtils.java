@@ -69,6 +69,7 @@ public abstract class ScopedProxyUtils {
 		proxyDefinition.setRole(targetDefinition.getRole());
 
 		proxyDefinition.getPropertyValues().add("targetBeanName", targetBeanName);
+		// true是 CGLIB代码 false jdk代理
 		if (proxyTargetClass) {
 			targetDefinition.setAttribute(AutoProxyUtils.PRESERVE_TARGET_CLASS_ATTRIBUTE, Boolean.TRUE);
 			// ScopedProxyFactoryBean's "proxyTargetClass" default is TRUE, so we don't need to set it explicitly here.
@@ -85,6 +86,7 @@ public abstract class ScopedProxyUtils {
 		}
 
 		// The target bean should be ignored in favor of the scoped proxy.
+		//设置忽略原始bean 使用代理bean
 		targetDefinition.setAutowireCandidate(false);
 		targetDefinition.setPrimary(false);
 

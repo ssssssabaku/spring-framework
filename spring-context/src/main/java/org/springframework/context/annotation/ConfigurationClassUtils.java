@@ -52,8 +52,9 @@ import org.springframework.stereotype.Component;
  */
 public abstract class ConfigurationClassUtils {
 
+	//说明内部@bean需要被代理（生成一个代理对象）
 	static final String CONFIGURATION_CLASS_FULL = "full";
-
+	//不生成代理对象，移除configuration 增加component
 	static final String CONFIGURATION_CLASS_LITE = "lite";
 
 	static final String CONFIGURATION_CLASS_ATTRIBUTE =
@@ -131,7 +132,7 @@ public abstract class ConfigurationClassUtils {
 				return false;
 			}
 		}
-
+		//判断配置类里面生成的bean是否需要被代理
 		Map<String, Object> config = metadata.getAnnotationAttributes(Configuration.class.getName());
 		if (config != null && !Boolean.FALSE.equals(config.get("proxyBeanMethods"))) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);

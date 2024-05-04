@@ -47,11 +47,13 @@ public enum ScopedProxyMode {
 	/**
 	 * Create a JDK dynamic proxy implementing <i>all</i> interfaces exposed by
 	 * the class of the target object.
+	 * JDK代理
 	 */
 	INTERFACES,
 
 	/**
 	 * Create a class-based proxy (uses CGLIB).
+	 * CGLIB
 	 */
 	TARGET_CLASS
 
