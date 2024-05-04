@@ -12,5 +12,8 @@ public class JdbcDemo {
 
 		TestMapper mapper = app.getBean(TestMapper.class);
 		System.out.println(mapper.queryByName("zhangsan"));
+
+		TransactionTest bean = app.getBean(TransactionTest.class);
+		System.out.println("update number："+bean.updateName("qweq"));
 	}
 }
