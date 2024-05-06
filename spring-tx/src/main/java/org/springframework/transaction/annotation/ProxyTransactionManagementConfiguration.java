@@ -56,6 +56,7 @@ public class ProxyTransactionManagementConfiguration extends AbstractTransaction
 	}
 
 	/**
+	 * 注册扫描transactional注解的类
 	 * 获取事务属性，传播机制，异常信息
 	 * @return
 	 */

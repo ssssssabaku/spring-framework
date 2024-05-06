@@ -162,6 +162,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				this.singletonFactories.put(beanName, singletonFactory);
 				//二级缓存
 				this.earlySingletonObjects.remove(beanName);
+				//已注册的bean
 				this.registeredSingletons.add(beanName);
 			}
 		}

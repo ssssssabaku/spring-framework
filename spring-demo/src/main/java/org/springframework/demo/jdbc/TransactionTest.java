@@ -1,6 +1,7 @@
 package org.springframework.demo.jdbc;
 
 import jakarta.annotation.Resource;
+import org.springframework.core.annotation.Order;
 import org.springframework.demo.jdbc.mapper.TestMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -8,6 +9,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Order(10000)
 public class TransactionTest {
 
 	@Resource

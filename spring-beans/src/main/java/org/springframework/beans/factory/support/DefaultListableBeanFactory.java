@@ -1138,6 +1138,8 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			processor.resetBeanDefinition(beanName);
 		}
 
+
+
 		// Reset all bean definitions that have the given bean as parent (recursively).
 		for (String bdName : this.beanDefinitionNames) {
 			if (!beanName.equals(bdName)) {

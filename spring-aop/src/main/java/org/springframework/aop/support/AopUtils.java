@@ -246,9 +246,12 @@ public abstract class AopUtils {
 
 		for (Class<?> clazz : classes) {
 			Method[] methods = ReflectionUtils.getAllDeclaredMethods(clazz);
+			//循环解析这个类的每一个方法，判断是否有@transaction这个注解
 			for (Method method : methods) {
 				if (introductionAwareMethodMatcher != null ?
 						introductionAwareMethodMatcher.matches(method, targetClass, hasIntroductions) :
+						//寻找具有@Transactional注解的方法
+						//TransactionAttributeSourcePointcut
 						methodMatcher.matches(method, targetClass)) {
 					return true;
 				}
@@ -285,6 +288,7 @@ public abstract class AopUtils {
 			return ia.getClassFilter().matches(targetClass);
 		}
 		else if (advisor instanceof PointcutAdvisor pca) {
+			//寻找具有@Transactional注解的方法
 			return canApply(pca.getPointcut(), targetClass, hasIntroductions);
 		}
 		else {
@@ -317,6 +321,7 @@ public abstract class AopUtils {
 				// already processed
 				continue;
 			}
+			//寻找具有@Transactional注解的方法
 			if (canApply(candidate, clazz, hasIntroductions)) {
 				eligibleAdvisors.add(candidate);
 			}

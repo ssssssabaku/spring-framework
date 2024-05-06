@@ -340,8 +340,10 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 			final InvocationCallback invocation) throws Throwable {
 
 		// If the transaction attribute is null, the method is non-transactional.
+		//获取方法事务注解
 		TransactionAttributeSource tas = getTransactionAttributeSource();
 		final TransactionAttribute txAttr = (tas != null ? tas.getTransactionAttribute(method, targetClass) : null);
+		//获取事务管理器
 		final TransactionManager tm = determineTransactionManager(txAttr);
 
 		if (this.reactiveAdapterRegistry != null && tm instanceof ReactiveTransactionManager rtm) {
@@ -377,25 +379,32 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 			return result;
 		}
 
+		//父类转换成子类
 		PlatformTransactionManager ptm = asPlatformTransactionManager(tm);
+		//获取当前被拦截方法全限定名
 		final String joinpointIdentification = methodIdentification(method, targetClass, txAttr);
 
+		//执行事务逻辑
 		if (txAttr == null || !(ptm instanceof CallbackPreferringPlatformTransactionManager cpptm)) {
 			// Standard transaction demarcation with getTransaction and commit/rollback calls.
+			// 根据事务配置来执行对应的事务
 			TransactionInfo txInfo = createTransactionIfNecessary(ptm, txAttr, joinpointIdentification);
 
 			Object retVal;
 			try {
 				// This is an around advice: Invoke the next interceptor in the chain.
 				// This will normally result in a target object being invoked.
+				//执行被代理的方法
 				retVal = invocation.proceedWithInvocation();
 			}
 			catch (Throwable ex) {
+				//异常回滚事务
 				// target invocation exception
 				completeTransactionAfterThrowing(txInfo, ex);
 				throw ex;
 			}
 			finally {
+				//清除当前事务信息
 				cleanupTransactionInfo(txInfo);
 			}
 
@@ -407,6 +416,7 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 				}
 			}
 
+			//提交事务
 			commitTransactionAfterReturning(txInfo);
 			return retVal;
 		}
@@ -598,6 +608,7 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 		TransactionStatus status = null;
 		if (txAttr != null) {
 			if (tm != null) {
+				//开启事务
 				status = tm.getTransaction(txAttr);
 			}
 			else {
@@ -607,6 +618,7 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 				}
 			}
 		}
+		//封装成TransactionInfo 绑定到threadLocal
 		return prepareTransactionInfo(tm, txAttr, joinpointIdentification, status);
 	}
 
